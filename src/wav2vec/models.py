@@ -11,7 +11,7 @@ from transformers.models.hubert.modeling_hubert import (
     HubertModel
 )
 
-from src.modeling_outputs import SpeechClassifierOutput
+from src.wav2vec.modeling_outputs import SpeechClassifierOutput
 
 
 class Wav2Vec2ClassificationHead(nn.Module):

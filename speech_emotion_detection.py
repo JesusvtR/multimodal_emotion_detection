@@ -3,11 +3,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchaudio
 from transformers import AutoConfig, Wav2Vec2FeatureExtractor
-from src.models import Wav2Vec2ForSpeechClassification
+from src.wav2vec.models import Wav2Vec2ForSpeechClassification
 from pathlib import Path
 import pyaudio
 import wave
 import tqdm
+import os
+import subprocess
 
 dict_emotions_ravdess = {
     0: 'Neutral',
@@ -20,20 +22,32 @@ dict_emotions_ravdess = {
     7: 'Surprise'
 }
 
-model_name_or_path = "trained_model"
+audio_name_or_path = "trained_model\\wav2vec"
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-config = AutoConfig.from_pretrained(model_name_or_path)
-feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(model_name_or_path)
+config = AutoConfig.from_pretrained(audio_name_or_path)
+feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(audio_name_or_path)
 sampling_rate = feature_extractor.sampling_rate
 
 # for wav2vec
-model = Wav2Vec2ForSpeechClassification.from_pretrained(model_name_or_path).to(device)
+model = Wav2Vec2ForSpeechClassification.from_pretrained(audio_name_or_path).to(device)
 
 path_record = "Record.wav"
 
 #RAVDESS Dataset (https://zenodo.org/records/1188976)
-path_test = "path/to/dataset"
+path_test_audio = "test\\audio"
+path_test_video = "test\\video"
+
+def convert_mp4_to_wav(path):
+
+    path_save = os.path.join(path_test_video, path.name[:-3] + "wav")
+    if not os.path.exists(path_save):
+        ff_audio = "ffmpeg -i {} -vn -acodec libmp3lame -ar 16000 -ac 2 {}".format(
+            path, path_save
+        )
+        subprocess.call(ff_audio, shell=True)
+
+    return path_save
 
 def speech_file_to_array_fn(path, sampling_rate):
     speech_array, _sampling_rate = torchaudio.load(path)
@@ -100,7 +114,7 @@ def recordAudio():
     print(outputs)
 
 def testAudios():
-    for path in Path(path_test).glob("**/*.wav"):
+    for path in Path(path_test_audio).glob("**/*.wav"):
         name = str(path).split('/')[-1].split('.')[0]
         label = dict_emotions_ravdess[int(name.split("-")[2]) - 1]  # Start emotions in 0
         print("Audio label is: ", label)
@@ -108,11 +122,23 @@ def testAudios():
         outputs = predict(path, sampling_rate)
         print(outputs)
 
+def audioFromVideo():
+    for path in Path(path_test_video).glob("**/*.mp4"):
+        name = str(path).split('/')[-1].split('.')[0]
+        label = dict_emotions_ravdess[int(name.split("-")[2]) - 1]  # Start emotions in 0
+        print("Audio label is: ", label)
+        actor = int(name.split("-")[-1])
+        wav_path = convert_mp4_to_wav(path)
+        outputs = predict(wav_path, sampling_rate)
+        print(outputs)
+
 while True:
-    choice = int(input("Enter 1 to predict your own record \nEnter 2 to test recorded audios. \nEnter 3 to quit. \n"))
+    choice = int(input("Enter 1 to predict your own record \nEnter 2 to test recorded audios. \nEnter 3 to test audios from recored videos. \nEnter 4 to quit. \n"))
     if choice == 1:
         recordAudio()
     elif choice == 2:
         testAudios()
+    elif choice == 3:
+        audioFromVideo()
     else:
         quit()
