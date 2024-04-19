@@ -1,7 +1,5 @@
-from src.SER.emotional_mesh import EmotionalMesh
+
 from src.SER.emotion_detection import EmotionDetection
-from speech_emotion_detection import recordAudio
-from threading import Thread, Event
 import cv2
 import time
 import argparse
@@ -72,7 +70,13 @@ def draw_predict(pred, image):
     cv2.putText(image, emotion, (20, 300), cv2.FONT_HERSHEY_PLAIN,
                 2, text_color, font_thickness)
 
-def record_video(stop_event,emotion_detection,vs):
+def record_video(stop_event):
+    # Start video stream
+    vs = cv2.VideoCapture(0)
+    time.sleep(2.0)
+
+    # Init EmotionDetection
+    emotion_detection = EmotionDetection()
     while not stop_event.is_set():
         # Read image from stream
         ret,image = vs.read()
@@ -92,3 +96,5 @@ def record_video(stop_event,emotion_detection,vs):
         cv2.imshow("imagen", image)
         if (cv2.waitKey(1) & 0xFF == ord('q')) or (cv2.getWindowProperty('imagen', cv2.WND_PROP_VISIBLE) < 1):
             break
+    cv2.destroyAllWindows()
+    vs.release()
