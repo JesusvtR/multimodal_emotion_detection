@@ -1,28 +1,13 @@
-import os
-
-import source.audio_analysis_utils.model as audio_model
-import source.audio_analysis_utils.predict as audio_predict
-
-import source.face_emotion_utils.model as face_model
-import source.face_emotion_utils.predict as face_predict
-import source.face_emotion_utils.utils as face_utils
-import source.config as config
-import source.face_emotion_utils.preprocess_main as face_preprocess_main
-
-import source.audio_face_combined.model as combined_model
-import source.audio_face_combined.preprocess_main as combined_data
-import source.audio_face_combined.combined_config as combined_config
-import source.audio_face_combined.predict as combined_predict
-import source.audio_face_combined.download_video as download_youtube
-import source.audio_face_combined.utils as combined_utils
-import source.audio_analysis_utils.transcribe_audio as transcribe_audio
-import cv2
-import sys
 import time
 import warnings
 import numpy as np
-from threading import Thread
 
+import source.audio_analysis_utils.predict as audio_predict
+import source.face_emotion_utils.predict as face_predict
+import source.config as config
+import source.audio_analysis_utils.transcribe_audio as transcribe_audio
+
+from threading import Thread
 from queue import Queue
 
 # Ignorar todas las advertencias
@@ -43,7 +28,6 @@ def main():
 
         # Processes list
         processes = [p1, p2]
-        #processes = [p1]
 
         # Init processes
         for p in processes:

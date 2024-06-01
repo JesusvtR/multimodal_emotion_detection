@@ -246,7 +246,7 @@ def predict(
         frames = []
         cap = cv2.VideoCapture(0)
         fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        out = cv2.VideoWriter(nombre_video, fourcc, frecuencia_muestreo_video, (ancho, alto))
+        out = cv2.VideoWriter(config.INPUT_FOLDER_PATH + nombre_video, fourcc, frecuencia_muestreo_video, (ancho, alto))
         num_frames = duracion * frecuencia_muestreo_video
         for _ in range(num_frames):
             ret, frame = cap.read()

@@ -19,7 +19,7 @@ best_audio_hyperparameters = utils.load_dict_from_json(config.AUDIO_BEST_HP_JSON
 duracion = 4  # Duración en segundos
 frecuencia_muestreo = 44100  # Frecuencia de muestreo en Hz
 
-def predict(result_queue, model_save_path=config.AUDIO_MODEL_SAVE_PATH, verbose=False, transcribe=True):
+def predict(result_queue, model_save_path=config.AUDIO_MODEL_SAVE_PATH, verbose=config.VERBOSE, transcribe=config.TRANSCRIBE):
     
     # Grabación
     audio = sd.rec(int(duracion * frecuencia_muestreo), samplerate=frecuencia_muestreo, channels=2, dtype='int16')
@@ -33,10 +33,6 @@ def predict(result_queue, model_save_path=config.AUDIO_MODEL_SAVE_PATH, verbose=
   
     if verbose:
         print(f"audio_file: {audio_file_only}")
-
-    # Clean the audio file
-    # data.clean_single(audio_file, save_path=config.OUTPUT_FOLDER_PATH + audio_file_only.replace('.wav', '_clean.wav'), print_flag=True)
-    # print("audio_file_cleaned")
 
     # Extract features
     extracted_mfcc, signal, sample_rate = utils.extract_mfcc(
@@ -57,7 +53,6 @@ def predict(result_queue, model_save_path=config.AUDIO_MODEL_SAVE_PATH, verbose=
     extracted_mfcc = torch.from_numpy(extracted_mfcc).float().to(config.device)
     
     if transcribe:
-        #transcribe_audio.transcribe_audio(file_path='C:\\git\\Video-Audio-Face-Emotion-Recognition\\input_files\\tu-eres-mi-hermano-del-alma-realmente-el-amigo.mp3')
         string_audio = transcribe_audio.transcribe_audio(audio=signal)
         emotion_transcribe = transcribe_audio.get_text_sentiment(string_audio)
         print(emotion_transcribe)
