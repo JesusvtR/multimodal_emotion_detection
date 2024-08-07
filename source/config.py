@@ -11,9 +11,9 @@ else:
 ls = os.sep
 device = 'cuda' if cuda.is_available() else 'cpu'
 
-VERBOSE = True
+VERBOSE = False
 TRANSCRIBE = True
-
+OUTPUT_IMAGE_PATH = MAIN_PATH + "output_files" + ls + "image.jpg"
 #################################################################################################################################
 # FOLDERS
 #################################################################################################################################

@@ -6,7 +6,7 @@ import ffmpeg
 import numpy as np
 import torch
 import torch.nn.functional as F
-
+import io
 from source.whisper.whisper.utils import exact_div
 
 # hard-coded audio hyperparameters
@@ -19,18 +19,15 @@ N_SAMPLES = CHUNK_LENGTH * SAMPLE_RATE  # 480000: number of samples in a chunk
 N_FRAMES = exact_div(N_SAMPLES, HOP_LENGTH)  # 3000: number of frames in a mel spectrogram input
 
 
-def load_audio(file: str, sr: int = SAMPLE_RATE):
+def load_audio(file_bytes: bytes, sr: int = 16_000) -> np.ndarray:
     """
-    Open an audio file and read as mono waveform, resampling as necessary
-
+    Use file's bytes and transform to mono waveform, resampling as necessary
     Parameters
     ----------
-    file: str
-        The audio file to open
-
+    file: bytes
+        The bytes of the audio file
     sr: int
         The sample rate to resample the audio if necessary
-
     Returns
     -------
     A NumPy array containing the audio waveform, in float32 dtype.
@@ -39,10 +36,11 @@ def load_audio(file: str, sr: int = SAMPLE_RATE):
         # This launches a subprocess to decode audio while down-mixing and resampling as necessary.
         # Requires the ffmpeg CLI and `ffmpeg-python` package to be installed.
         out, _ = (
-            ffmpeg.input(file, threads=0)
-            .output("-", format="s16le", acodec="pcm_s16le", ac=1, ar=sr)
-            .run(cmd=["ffmpeg", "-nostdin"], capture_stdout=True, capture_stderr=True)
-        )
+            ffmpeg.input('pipe:', threads=0)
+            .output("pipe:", format="s16le", acodec="pcm_s16le", ac=1, ar=sr)
+            .run_async(pipe_stdin=True, pipe_stdout=True)
+        ).communicate(input=file_bytes)
+
     except ffmpeg.Error as e:
         raise RuntimeError(f"Failed to load audio: {e.stderr.decode()}") from e
 
@@ -106,6 +104,7 @@ def log_mel_spectrogram(audio: Union[str, np.ndarray, torch.Tensor], n_mels: int
     torch.Tensor, shape = (80, n_frames)
         A Tensor that contains the Mel spectrogram
     """
+    
     if not torch.is_tensor(audio):
         if isinstance(audio, str):
             audio = load_audio(audio)

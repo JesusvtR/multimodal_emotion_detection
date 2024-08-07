@@ -7,7 +7,7 @@ import source.config as config
 import source.face_emotion_utils.face_config as face_config
 
 
-def get_mesh(image, upscale_landmarks=True, save_path=None, showImg=False, print_flag=True, return_mesh=False):
+def get_mesh(image, upscale_landmarks=True, save_path=config.OUTPUT_IMAGE_PATH, showImg=False, print_flag=True, return_mesh=False):
     """
     Get the face mesh from an image
     Parameters

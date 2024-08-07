@@ -33,7 +33,7 @@ def init(max_threads=1):
                           #return_all_scores=True)
 
     for i in range(max_threads):
-        transcribe_model = whisper.load_model("medium")
+        transcribe_model = whisper.load_model("base")
         models[i] = transcribe_model
     print("Transcription and sentiment models loaded")
 

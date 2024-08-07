@@ -46,7 +46,7 @@ def _get_prediction(
         best_hp,
         img,
         model,
-        imshow=False,
+        imshow=True,
         video_mode=False,
         grad_cam=False,
         grad_cam_on_video=False,
@@ -63,7 +63,8 @@ def _get_prediction(
     if result is None:
         if verbose:
             print("No face detected")
-        return None
+        return_no_face_mesh = ('Neutral', 0, 0, 0, 0)
+        return return_no_face_mesh
 
     landmarks_depths, face_input_org, annotated_image, (tl_xy, br_xy) = result
 
@@ -180,10 +181,10 @@ def _get_prediction(
                     color=(0, 255, 0),
                     thickness=2)
 
-        if imshow:
-            cv2.imshow("face", face_input)
+        # if imshow:
+        #     cv2.imshow("face", face_input)
 
-        if not video_mode:
+        if True:
             cv2.imwrite(config.OUTPUT_FOLDER_PATH + "grad_cam.jpg", cv2.cvtColor(result_npy, cv2.COLOR_RGB2BGR))
             cv2.imwrite(config.OUTPUT_FOLDER_PATH + "emotion.jpg", cv2.cvtColor(face_input, cv2.COLOR_BGR2RGB))
 
@@ -260,7 +261,7 @@ def predict(
         cap.release()
         out.release()
         #ret, frame = cap.read()
-        pred = _get_prediction(best_hp=best_face_hyperparameters, img=frame, model=model, imshow=False, video_mode=True, verbose=verbose)
+        pred = _get_prediction(best_hp=best_face_hyperparameters, img=frame, model=model, imshow=face_config.SHOW_PRED_IMAGE, grad_cam=face_config.GRAD_CAM, video_mode=True, verbose=verbose)
         wait_time = round((1000 / fps_in) - (time.time() - init_time))
         if verbose:
             print("wait_time: ", wait_time)
@@ -268,24 +269,30 @@ def predict(
         result_queue.put(pred)
         return None
     if webcam_mode:
+        init_time = time.time()
+        frames = []
         cap = cv2.VideoCapture(0)
-        while True:
-            init_time = time.time()
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        out = cv2.VideoWriter(config.INPUT_FOLDER_PATH + nombre_video, fourcc, frecuencia_muestreo_video, (ancho, alto))
+        num_frames = duracion * frecuencia_muestreo_video
+        for _ in range(num_frames):
             ret, frame = cap.read()
-            if not ret:
+            if ret:
+                out.write(frame)
+                frames.append(frame)
+            else:
                 break
-            _get_prediction(best_hp=best_face_hyperparameters,
-                            img=frame,
-                            model=model,
-                            imshow=True,
-                            video_mode=True,
-                            verbose=verbose,
-                            grad_cam=True,
-                            grad_cam_on_video=grad_cam_on_video,
-                            feature_maps_flag=False)
-
-            cv2.waitKey(1)
-
+        #cap = cv2.VideoCapture(frame)
+        fps_in = cap.get(cv2.CAP_PROP_FPS)
+        cap.release()
+        out.release()
+        #ret, frame = cap.read()
+        pred = _get_prediction(best_hp=best_face_hyperparameters, img=frame, model=model, imshow=imshow, grad_cam=True, video_mode=True, verbose=verbose)
+        wait_time = round((1000 / fps_in) - (time.time() - init_time))
+        if verbose:
+            print("wait_time: ", wait_time)
+        #cv2.waitKey(wait_time)
+        result_queue.put(pred)
         return None
     else:
         if type(image) == str:
