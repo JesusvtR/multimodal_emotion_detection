@@ -25,12 +25,8 @@ def init(max_threads=1):
     global models, models_in_use, tokenizer, sentiment_classifier, emotion_classifier
 
     print("Loading transcription and sentiment models...")
-
-    #tokenizer = DistilBertTokenizer.from_pretrained("distilbert-base-uncased-finetuned-sst-2-english")
-    #sentiment_classifier = DistilBertForSequenceClassification.from_pretrained("distilbert-base-uncased-finetuned-sst-2-english")
     emotion_classifier = pipeline("text-classification", model="chris32/distilbert-base-spanish-uncased-finetuned-text-intelligence", return_all_scores=True)
-    #emotion_classifier = pipeline("text-classification", model="j-hartmann/emotion-english-distilroberta-base",
-                          #return_all_scores=True)
+
 
     for i in range(max_threads):
         transcribe_model = whisper.load_model("base")

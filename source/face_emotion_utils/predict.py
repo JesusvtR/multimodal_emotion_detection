@@ -18,16 +18,12 @@ from matplotlib import pyplot as plt
 from queue import Queue
 
 FACE_SQUARE_SIZE = 64
+DURATION = 4  # Duración en segundos
+VIDEO_SAMPLING_RATE = 30  # Frecuencia de muestreo de video en fps
+VIDEO_WIDTH  = 640  # VIDEO_WIDTH  del video
+VIDEO_HEIGHT  = 480  # VIDEO_HEIGHT  del video
+VIDEO_NAME  = 'output_video.avi'  # Nombre del archivo de video
 
-duracion = 4  # Duración en segundos
-frecuencia_muestreo_audio = 44100  # Frecuencia de muestreo de audio en Hz
-frecuencia_muestreo_video = 20  # Frecuencia de muestreo de video en fps
-ancho = 640  # Ancho del video
-alto = 480  # Alto del video
-nombre_video = 'output_video.avi'  # Nombre del archivo de video
-best_hp_json_path = config.FACE_BEST_HP_JSON_SAVE_PATH
-best_face_hyperparameters = face_utils.load_dict_from_json(best_hp_json_path)
-#print(f"Best hyperparameters, {best_hyperparameters}")
 
 last_prediction = ''
 def _create_gradcam(model, model_input, target_layer, device, verbose=False):
@@ -47,7 +43,7 @@ def _get_prediction(
         img,
         model,
         imshow=True,
-        video_mode=False,
+        save_image=config.SAVE_OUTPUT_IMAGE,
         grad_cam=False,
         grad_cam_on_video=False,
         feature_maps_flag=False,
@@ -67,8 +63,6 @@ def _get_prediction(
         return return_no_face_mesh
 
     landmarks_depths, face_input_org, annotated_image, (tl_xy, br_xy) = result
-
-    # Normalise if needed
     normalise = best_hp['normalise']
     if normalise:
         landmarks_depths = face_utils.normalise_lists([landmarks_depths], save_min_max=True, print_flag=verbose)[0]
@@ -78,18 +72,19 @@ def _get_prediction(
     # Get the full image
     face_input = cv2.cvtColor(face_input_org, cv2.COLOR_BGR2GRAY)
     face_input = cv2.resize(face_input, (face_config.FACE_SIZE, face_config.FACE_SIZE))
-
     # Prep it for pytorch
     face_input = np.repeat(face_input[np.newaxis, :, :], 3, axis=0)
+    
     if verbose:
         print("face_input.shape", face_input.shape)
+        
     x = np.array(face_input)
     x = x / 255.
     x = x.reshape(face_utils.get_input_shape("image"))
     x = np.array(x[np.newaxis, :])
+    
     if verbose:
         print(x.shape)
-
     landmarks_depths = np.array(landmarks_depths[np.newaxis, :])
     if verbose:
         print(landmarks_depths.shape)
@@ -132,7 +127,7 @@ def _get_prediction(
 
         result_pil = _overlay_gradcam_on_image(face_img, grad_cam, alpha=0.5)
 
-        if imshow and not video_mode:
+        if imshow:
             result_pil.show()
 
         result_npy = np.array(result_pil, dtype=np.uint8)
@@ -184,7 +179,7 @@ def _get_prediction(
         # if imshow:
         #     cv2.imshow("face", face_input)
 
-        if True:
+        if save_image:
             cv2.imwrite(config.OUTPUT_FOLDER_PATH + "grad_cam.jpg", cv2.cvtColor(result_npy, cv2.COLOR_RGB2BGR))
             cv2.imwrite(config.OUTPUT_FOLDER_PATH + "emotion.jpg", cv2.cvtColor(face_input, cv2.COLOR_BGR2RGB))
 
@@ -199,115 +194,40 @@ def _get_prediction(
 def predict(
         result_queue,
         image=None,
-        video_mode=True,
-        webcam_mode=False,
         model_save_path=config.FACE_MODEL_SAVE_PATH,
-        best_hp_json_path=config.FACE_BEST_HP_JSON_SAVE_PATH,
         verbose=face_config.PREDICT_VERBOSE,
-        imshow=face_config.SHOW_PRED_IMAGE,
-        grad_cam=face_config.GRAD_CAM,
-        grad_cam_on_video=face_config.GRAD_CAM_ON_VIDEO,
 ):
     """
-    Predicts the emotion of the face in the image or video.
-    Takes the full image, crops the face, detects the landmarks, and then runs the model on the face image and the landmarks.
+    Predicts the emotion of the face in the image or video. Takes the full image, crops the face, detects the landmarks, 
+    and then runs the model on the face image and the landmarks.
 
-    Parameters
-    ----------
-    image - path to image or video, or a numpy array of the image. Numpy array will only work if not video_mode or webcam_mode
-        (Note: program currently only supports one face per image, if you'd like to add support for multiple faces, please submit a pull request.
-        You'd just need to detect the faces using face_mesh.py or something similar, and then run the model on each face)
-    video_mode - if True, will run the model on each frame of the video
-    webcam_mode - if True, will run the model on each frame of the webcam
-    model_save_path - path to the model to load
-    imshow - if True, will show the image with the prediction
-    verbose - if True, will print out the prediction probabilities
-
-    Returns
-    -------
-    You'll get a tuple of the following based on the argments you pass in:
-
-    if not webcam_mode and not video_mode:
-        if grad_cam:
-            Emotion name, emotion index, list of prediction probabilities, image as numpy, grad cam overlay as numpy
-        else:
-            Emotion name, emotion index, list of prediction probabilities, image as numpy
-    else:
-        None
-
+    @param result_queue: Queue to store the prediction results.
+    @param image: Path to image or video, or a numpy array of the image. Numpy array will only work if not video_mode or webcam_mode.
+    @param model_save_path: Path to the model to load.
+    @param verbose: If True, print debug information.
+    @return: None
     """
-
-
-
     model = torch.load(model_save_path, map_location=torch.device('cpu'))
     model.to(config.device).eval()
-
-    if video_mode:
-        init_time = time.time()
-        frames = []
-        cap = cv2.VideoCapture(0)
-        fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        out = cv2.VideoWriter(config.INPUT_FOLDER_PATH + nombre_video, fourcc, frecuencia_muestreo_video, (ancho, alto))
-        num_frames = duracion * frecuencia_muestreo_video
-        for _ in range(num_frames):
-            ret, frame = cap.read()
-            if ret:
-                out.write(frame)
-                frames.append(frame)
-            else:
-                break
-        #cap = cv2.VideoCapture(frame)
-        fps_in = cap.get(cv2.CAP_PROP_FPS)
-        cap.release()
-        out.release()
-        #ret, frame = cap.read()
-        pred = _get_prediction(best_hp=best_face_hyperparameters, img=frame, model=model, imshow=face_config.SHOW_PRED_IMAGE, grad_cam=face_config.GRAD_CAM, video_mode=True, verbose=verbose)
-        wait_time = round((1000 / fps_in) - (time.time() - init_time))
-        if verbose:
-            print("wait_time: ", wait_time)
-        #cv2.waitKey(wait_time)
-        result_queue.put(pred)
-        return None
-    if webcam_mode:
-        init_time = time.time()
-        frames = []
-        cap = cv2.VideoCapture(0)
-        fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        out = cv2.VideoWriter(config.INPUT_FOLDER_PATH + nombre_video, fourcc, frecuencia_muestreo_video, (ancho, alto))
-        num_frames = duracion * frecuencia_muestreo_video
-        for _ in range(num_frames):
-            ret, frame = cap.read()
-            if ret:
-                out.write(frame)
-                frames.append(frame)
-            else:
-                break
-        #cap = cv2.VideoCapture(frame)
-        fps_in = cap.get(cv2.CAP_PROP_FPS)
-        cap.release()
-        out.release()
-        #ret, frame = cap.read()
-        pred = _get_prediction(best_hp=best_face_hyperparameters, img=frame, model=model, imshow=imshow, grad_cam=True, video_mode=True, verbose=verbose)
-        wait_time = round((1000 / fps_in) - (time.time() - init_time))
-        if verbose:
-            print("wait_time: ", wait_time)
-        #cv2.waitKey(wait_time)
-        result_queue.put(pred)
-        return None
+    best_face_hyperparameters = face_utils.load_dict_from_json(config.FACE_BEST_HP_JSON_SAVE_PATH)
+    if config.ROS_SETUP:
+        frame = '/subscribers/camera_reading/topic'
     else:
-        if type(image) == str:
-            image = cv2.imread(image)
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-        result = _get_prediction(best_hp=best_face_hyperparameters, img=image, model=model, imshow=imshow, video_mode=video_mode, verbose=verbose, grad_cam=grad_cam)
-
-        if verbose:
-            print("\n\n\nResults:")
-            for res in result:
-                # check if numpy
-                if type(res) == np.ndarray:
-                    print(res.shape)
-                else:
-                    print(res)
-
-        return result
+        frames = []
+        cap = cv2.VideoCapture(0)
+        if config.SAVE_OUTPUT_IMAGE:
+            fourcc = cv2.VideoWriter_fourcc(*'XVID')
+            out = cv2.VideoWriter(config.INPUT_FOLDER_PATH + VIDEO_NAME , fourcc, VIDEO_SAMPLING_RATE, (VIDEO_WIDTH , VIDEO_HEIGHT))
+        num_frames = DURATION * VIDEO_SAMPLING_RATE
+        for _ in range(num_frames):
+            ret, frame = cap.read()
+            if ret:
+                frames.append(frame)
+            else:
+                break
+        cap.release()
+        if config.SAVE_OUTPUT_IMAGE:
+            out.release()
+    pred = _get_prediction(best_hp=best_face_hyperparameters, img=frame, model=model, imshow=face_config.SHOW_PRED_IMAGE, grad_cam=face_config.GRAD_CAM, verbose=verbose)
+    result_queue.put(pred)
+    return None

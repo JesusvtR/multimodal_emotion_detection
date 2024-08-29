@@ -10,16 +10,13 @@ import ollama
 from threading import Thread
 from queue import Queue
 
-# Ignorar todas las advertencias
-warnings.filterwarnings("ignore")
-
 def main():
     emotion_index_dict=config.EMOTION_INDEX
     transcribe_audio.init()
     while True:
         inicio = time.time()
         
-        # Crear la cola para recibir los mensajes de los procesos
+        # Create queue
         result_queue = Queue()
         
         # Create processes
@@ -37,21 +34,27 @@ def main():
         for p in processes:
             p.join()
 
-        # Obtiene resultados de la cola
+        # Get video result queue
         resultado_video = result_queue.get()
         if config.VERBOSE == True:
             print(f"Resultado obtenido de {resultado_video}")
-        result_queue.task_done()  # Marca el elemento como procesado
+        result_queue.task_done()  
+        
+        # Get audio result queue
         resultado_audio = result_queue.get()
         if config.VERBOSE == True:
             print(f"Resultado obtenido de {resultado_audio}")
-        result_queue.task_done()  # Marca el elemento como procesado
+        result_queue.task_done()  
 
+        # Get variables
         emotion_face, emotion_index, tensor_video, image_array, result_numpy = resultado_video
         emotion_speech, transcription, label, tensor_audio, extracted_mfcc = resultado_audio
         
+        # Print emotions
         print(emotion_face)
         print(emotion_speech)
+        
+        # Transcription to LLM
         if(transcription == ''):
             print('No transcription')
         else:
@@ -63,6 +66,7 @@ def main():
             },])
             print(response['message']['content'])
         
+        # Time counter
         fin = time.time()
         tiempo_transcurrido = fin - inicio
         if config.VERBOSE == False:

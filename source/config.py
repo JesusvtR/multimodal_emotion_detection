@@ -14,6 +14,9 @@ device = 'cuda' if cuda.is_available() else 'cpu'
 VERBOSE = False
 TRANSCRIBE = True
 OUTPUT_IMAGE_PATH = MAIN_PATH + "output_files" + ls + "image.jpg"
+SAVE_OUTPUT_IMAGE = False
+SAVE_AUDIO = False
+ROS_SETUP = False
 #################################################################################################################################
 # FOLDERS
 #################################################################################################################################

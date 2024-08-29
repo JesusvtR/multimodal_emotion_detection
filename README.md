@@ -122,3 +122,7 @@ Ejemplo:
 
 ollama run llama3.1
 
+#No module named 'rospy' 
+
+sudo apt-get install -y python3-rospy
+
