@@ -24,14 +24,13 @@ models_in_use = []
 def init(max_threads=1):
     global models, models_in_use, tokenizer, sentiment_classifier, emotion_classifier
 
-    print("Loading transcription and sentiment models...")
+    print("Loading transcription model...")
     emotion_classifier = pipeline("text-classification", model="chris32/distilbert-base-spanish-uncased-finetuned-text-intelligence", return_all_scores=True)
-
 
     for i in range(max_threads):
         transcribe_model = whisper.load_model("base")
         models[i] = transcribe_model
-    print("Transcription and sentiment models loaded")
+    print("Transcription models loaded")
 
 
 def delete_models():

@@ -1,0 +1,19 @@
+subscribers:
+
+  camera_reading:
+    topic: /usb_cam/image_raw/compressed
+    queue_size: 1
+
+publishers:
+
+  face_emotion:
+    topic: /multimodal_emotion_detection_ros/face_emotion
+
+  audio_emotion:
+    topic: /multimodal_emotion_detection_ros/audio_emotion
+  
+  transcription:
+    topic: /multimodal_emotion_detection_ros/transcription
+
+
+

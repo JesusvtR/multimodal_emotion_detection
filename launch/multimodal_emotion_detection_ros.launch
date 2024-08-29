@@ -1,0 +1,6 @@
+<launch>
+    <env name="PYTHONPATH" value="$(find multimodal_emotion_detection)/src:$(find multimodal_emotion_detection)/source"/>
+    <node name="multimodal_emotion_detection" pkg="multimodal_emotion_detection" type="main.py" output="screen"/>
+
+    <rosparam file="$(find multimodal_emotion_detection)/config/ros.yaml" command="load"/>
+</launch>
