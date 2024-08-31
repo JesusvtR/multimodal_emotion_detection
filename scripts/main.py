@@ -3,25 +3,34 @@
 import sys
 import os
 import time
-import ollama
-import rospy
 
+sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
+from source import config as config
+if config.ROS_SETUP == True:
+    import rospy
+    from multimodal_emotion_detection import EmotionData    
+
+if config.PROMPT_LLM == True:
+    from source.llm_utils import assistant
 from source.audio_analysis_utils import predict as audio_predict
 from source.face_emotion_utils import predict as face_predict
-from source import config as config
 from source.audio_analysis_utils import transcribe_audio
+
 from threading import Thread
 from queue import Queue
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
 
-from multimodal_emotion_detection import EmotionData
 
 def main():
     # Init audio
     transcribe_audio.init()
     #pub = rospy.Publisher('emotion_data', EmotionData, queue_size=10)
-    while not rospy.is_shutdown():
+    if config.ROS_SETUP == True:
+        loop = rospy.is_shutdown()
+    else:
+        loop = False
+    while not loop:
 
         inicio = time.time()
         
@@ -47,51 +56,46 @@ def main():
         facial_prediction = result_queue.get()
         if config.VERBOSE == True:
             print(f"Facial prediction: {facial_prediction}")
-        result_queue.task_done()  
+        result_queue.task_done() 
+        
         
         # Get speech result queue
         speech_prediction = result_queue.get()
         if config.VERBOSE == True:
             print(f"Audio prediction: {speech_prediction}")
         result_queue.task_done()  
-
-        # Get variables
-        emotion_face, emotion_index, tensor_video, image_array, result_numpy = facial_prediction
-        emotion_speech, transcription, label, tensor_audio, extracted_mfcc = speech_prediction
-        
+        emotion_face, face_emotion_index, tensor_video = facial_prediction
+        emotion_speech, transcription, speech_emotion_index, tensor_audio, extracted_mfcc = speech_prediction
         # Print emotions
-        print(emotion_face)
-        print(emotion_speech)
+        print(f'Face emotion: {emotion_face}')
+        print(f'Speech emotion: {emotion_speech}')
         
         # Sent transcription prompt to LLM
-        if config.PROMPT_LLM == True:
-            # 
-            if(transcription == ''):
+        if config.PROMPT_LLM == True: 
+            if(transcription == ""):
                 print('No transcription')
             else:
                 print(transcription)
-                response = ollama.chat(model='llama3.1', messages=[
-                {
-                  'role': 'user',
-                  'content': transcription,
-                },])
-                print(response['message']['content'])
+                assistant.ask(transcription, face_emotion_index, speech_emotion_index)
         
         # Time counter
         fin = time.time()
         tiempo_transcurrido = fin - inicio
-        if config.VERBOSE == False:
+        if config.VERBOSE == True:
             print(f"Elapsed time: {tiempo_transcurrido} seconds")
 
         # Publish outputs
-        emotion_data = EmotionData()
-        emotion_data.emotion_face = emotion_face
-        emotion_data.emotion_speech = emotion_speech
-        emotion_data.transcription = transcription
-        pub.publish(emotion_data)
+        if config.ROS_SETUP == True:
+            emotion_data = EmotionData()
+            emotion_data.emotion_face = face_emotion_index
+            emotion_data.emotion_speech = speech_emotion_index
+            emotion_data.transcription = transcription
+            pub.publish(emotion_data)
     
 if __name__ == '__main__':
-    rospy.init_node('multimodal_emotion_detection')
+    if config.ROS_SETUP == True:
+        rospy.init_node('multimodal_emotion_detection')
     main()
-    rospy.spin()
+    if config.ROS_SETUP == True:
+        rospy.spin()
     

@@ -10,12 +10,15 @@ import source.config as config
 
 import cv2
 import numpy as np
+if config.ROS_SETUP:
+    import rospy
 from PIL import Image as ImagePIL
 import time
 import torch
 import torch.nn.functional as F
 from matplotlib import pyplot as plt
 from queue import Queue
+
 
 FACE_SQUARE_SIZE = 64
 DURATION = 4  # Duración en segundos
@@ -59,9 +62,9 @@ def _get_prediction(
     if result is None:
         if verbose:
             print("No face detected")
-        return_no_face_mesh = ('Neutral', 0, 0, 0, 0)
+        return_no_face_mesh = ('Neutral', 1, 0)
         return return_no_face_mesh
-
+    # Normalise landmarks result
     landmarks_depths, face_input_org, annotated_image, (tl_xy, br_xy) = result
     normalise = best_hp['normalise']
     if normalise:
@@ -111,8 +114,6 @@ def _get_prediction(
     string = audio_utils.get_softmax_probs_string(pred_numpy, list(emotion_index_dict.values()))
     string_img = emotion_index_dict[prediction_index] + ": " + str(round(max(pred_numpy) * 100)) + "%"
 
-    return_objs = (emotion_index_dict[prediction_index], prediction_index, list(pred_numpy), img)
-
     if grad_cam:
         target_layer = model.base_model_conv.layer3
 
@@ -155,41 +156,40 @@ def _get_prediction(
                 _visualise_feature_maps(feature_maps[0], config.OUTPUT_FOLDER_PATH + "feature_maps_" + str(i) + ".png")
                 layer._forward_hooks.clear()
 
-        return_objs = (emotion_index_dict[prediction_index], prediction_index, list(pred_numpy), img, result_npy)
+        
 
         if grad_cam_on_video:
             face_input = result_npy.copy()
-        else:
-            face_input = face_input_org.copy()
+    else:
+        face_input = face_input_org.copy()
+        
+    face_input = cv2.rectangle(face_input,
+                               (face_input.shape[0] // 20, face_input.shape[0] // 20),
+                               (int(face_input.shape[0] * 0.95), int(face_input.shape[0] * 0.95)),
+                               (0, 255, 0),
+                               max(face_input.shape[0] // 100, 1))
+    face_input = cv2.resize(face_input, (face_config.FACE_SIZE * 5, face_config.FACE_SIZE * 5))
+    cv2.putText(img=face_input,
+                text=string_img,
+                org=(face_input.shape[0] // 15, face_input.shape[0] // 8),
+                fontFace=cv2.QT_FONT_NORMAL,
+                fontScale=0.75,
+                color=(0, 255, 0),
+                thickness=2)
+    # if imshow:
+    #     cv2.imshow("face", face_input)
 
-        face_input = cv2.rectangle(face_input,
-                                   (face_input.shape[0] // 20, face_input.shape[0] // 20),
-                                   (int(face_input.shape[0] * 0.95), int(face_input.shape[0] * 0.95)),
-                                   (0, 255, 0),
-                                   max(face_input.shape[0] // 100, 1))
-        face_input = cv2.resize(face_input, (face_config.FACE_SIZE * 5, face_config.FACE_SIZE * 5))
-        cv2.putText(img=face_input,
-                    text=string_img,
-                    org=(face_input.shape[0] // 15, face_input.shape[0] // 8),
-                    fontFace=cv2.QT_FONT_NORMAL,
-                    fontScale=0.75,
-                    color=(0, 255, 0),
-                    thickness=2)
-
-        # if imshow:
-        #     cv2.imshow("face", face_input)
-
-        if save_image:
+    if save_image:
+        if grad_cam:
             cv2.imwrite(config.OUTPUT_FOLDER_PATH + "grad_cam.jpg", cv2.cvtColor(result_npy, cv2.COLOR_RGB2BGR))
-            cv2.imwrite(config.OUTPUT_FOLDER_PATH + "emotion.jpg", cv2.cvtColor(face_input, cv2.COLOR_BGR2RGB))
-
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
-            cv2.waitKey(1)
-            cv2.destroyAllWindows()
-
+        #cv2.imwrite(config.OUTPUT_FOLDER_PATH + "emotion.jpg", cv2.cvtColor(face_input, cv2.COLOR_BGR2RGB))
+        cv2.imwrite(config.OUTPUT_FOLDER_PATH + "emotion.jpg", face_input)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+        cv2.waitKey(1)
+        cv2.destroyAllWindows()
+    return_objs = (emotion_index_dict[prediction_index], prediction_index, list(pred_numpy))
     return return_objs
-
 
 def predict(
         result_queue,
@@ -207,11 +207,13 @@ def predict(
     @param verbose: If True, print debug information.
     @return: None
     """
-    model = torch.load(model_save_path, map_location=torch.device('cpu'))
+    model = torch.load(model_save_path, map_location=config.device)
     model.to(config.device).eval()
     best_face_hyperparameters = face_utils.load_dict_from_json(config.FACE_BEST_HP_JSON_SAVE_PATH)
+    
     if config.ROS_SETUP:
-        frame = '/subscribers/camera_reading/topic'
+        camera_topic = rospy.get_param('/subscribers/camera_reading/topic')
+        frame = rospy.Subscriber(camera_topic, frame) 
     else:
         frames = []
         cap = cv2.VideoCapture(0)

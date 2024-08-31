@@ -64,8 +64,8 @@ softmax_len = config.softmax_len
 
 SHOW_PRED_IMAGE = False  # This will display the predicted image in a new window
 PREDICT_VERBOSE = False  # This will print the predicted emotion and other info on the console
-GRAD_CAM = True  # Extract gradcam for the predicted image
-GRAD_CAM_ON_VIDEO = True  # When video mode or webcam mode is on, this will display the gradcam overlay on the displayed face
+GRAD_CAM = False  # Extract gradcam for the predicted image
+GRAD_CAM_ON_VIDEO = False  # When video mode or webcam mode is on, this will display the gradcam overlay on the displayed face
 ############################################################################################################
 # data filename label_schema:
 # <dataset_name>_<s.no>_<emotion_index>.wav

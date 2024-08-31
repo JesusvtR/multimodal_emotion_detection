@@ -16,9 +16,8 @@ import io
 import soundfile as sf
 
 
-# Record parameters
-DURATION = 60  # Duration in seconds
-
+# Record parameters 
+DURATION = 30  # Duration in seconds %RS_3.3%
 
 def predict(result_queue):
     best_audio_hyperparameters = utils.load_dict_from_json(config.AUDIO_BEST_HP_JSON_SAVE_PATH)
@@ -75,11 +74,9 @@ def predict(result_queue):
     
     if config.TRANSCRIBE:
         string_audio = transcribe_audio.transcribe_audio(audio_array)
-        if config.VERBOSE:
-            print(string_audio)
 
     # Load the model
-    model = torch.load(config.AUDIO_MODEL_SAVE_PATH, map_location=torch.device('cpu'))
+    model = torch.load(config.AUDIO_MODEL_SAVE_PATH, map_location=config.device)
     model.to(config.device).eval()
 
     prediction = model(extracted_mfcc)
@@ -90,7 +87,8 @@ def predict(result_queue):
 
     # Get the predicted label
     predicted_label = max(prediction_numpy)
-    emotion = config.EMOTION_INDEX[prediction_numpy.tolist().index(predicted_label)]
+    audio_emotion_index = prediction_numpy.tolist().index(predicted_label)
+    emotion = config.EMOTION_INDEX[audio_emotion_index]
     if config.VERBOSE:
         print(f"Predicted emotion: {emotion} {round(predicted_label, 2)}")
 
@@ -98,6 +96,6 @@ def predict(result_queue):
     if config.VERBOSE:
         print(f"\n\n\nPrediction labels:\n{ret_string}")
     
-    return_objs = (emotion, string_audio, predicted_label, prediction_numpy, extracted_mfcc)
+    return_objs = (emotion, string_audio, audio_emotion_index, prediction_numpy, extracted_mfcc)
     result_queue.put(item=return_objs)
     return None

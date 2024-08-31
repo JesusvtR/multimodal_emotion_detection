@@ -25,8 +25,6 @@ def init(max_threads=1):
     global models, models_in_use, tokenizer, sentiment_classifier, emotion_classifier
 
     print("Loading transcription model...")
-    emotion_classifier = pipeline("text-classification", model="chris32/distilbert-base-spanish-uncased-finetuned-text-intelligence", return_all_scores=True)
-
     for i in range(max_threads):
         transcribe_model = whisper.load_model("base")
         models[i] = transcribe_model
@@ -54,16 +52,15 @@ def transcribe_audio(file_path=None, audio=None):
     free_models = list(set(models.keys()) - set(models_in_use))
     transcribe_model = models[free_models[0]]
     models_in_use.append(free_models[0])
-
     #audio_file = audio_utils.find_filename_match(file_path.replace('.wav', '_clean.wav'), config.OUTPUT_FOLDER_PATH)
     if audio is not None:
-        result = transcribe_model.transcribe(audio, condition_on_previous_text=False)
+        result = transcribe_model.transcribe(audio, condition_on_previous_text=True)
     else:
-        result = transcribe_model.transcribe(file_path, condition_on_previous_text=False)
+        result = transcribe_model.transcribe(file_path, condition_on_previous_text=True)
 
     models_in_use.remove(free_models[0])
-    
-    print (result["text"])
+    if config.VERBOSE == True:
+        print(result["text"])
     
     return result["text"]
 
