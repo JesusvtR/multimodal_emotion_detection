@@ -207,7 +207,7 @@ def predict(
     @param verbose: If True, print debug information.
     @return: None
     """
-    model = torch.load(model_save_path, map_location=config.device)
+    model = torch.load(model_save_path, map_location=torch.device('cpu'))
     model.to(config.device).eval()
     best_face_hyperparameters = face_utils.load_dict_from_json(config.FACE_BEST_HP_JSON_SAVE_PATH)
     

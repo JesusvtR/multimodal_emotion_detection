@@ -22,13 +22,13 @@ DURATION = 30  # Duration in seconds %RS_3.3%
 def predict(result_queue):
     best_audio_hyperparameters = utils.load_dict_from_json(config.AUDIO_BEST_HP_JSON_SAVE_PATH)
     AUDIO_SAMPLE_RATE = 16000  # Sampling rate in Hz
-    # Record
+    # Record audio with microphone
     recorder = sr.Recognizer()
     source = sr.Microphone(sample_rate=16000)
     with source:
         recorder.adjust_for_ambient_noise(source)
         audio_data = recorder.listen(source, timeout=DURATION)
-    
+        
     wav_bytes = audio_data.get_wav_data(convert_rate=AUDIO_SAMPLE_RATE)
     wav_stream = io.BytesIO(wav_bytes)
     audio_array, sampling_rate = sf.read(wav_stream)
@@ -73,10 +73,11 @@ def predict(result_queue):
     extracted_mfcc = torch.from_numpy(extracted_mfcc).float().to(config.device)
     
     if config.TRANSCRIBE:
+        # string_audio = transcribe_audio.transcribe_audio(audio_array)
         string_audio = transcribe_audio.transcribe_audio(audio_array)
-
     # Load the model
-    model = torch.load(config.AUDIO_MODEL_SAVE_PATH, map_location=config.device)
+    model = torch.load(config.AUDIO_MODEL_SAVE_PATH, map_location=torch.device('cpu'))
+
     model.to(config.device).eval()
 
     prediction = model(extracted_mfcc)
