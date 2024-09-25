@@ -12,7 +12,7 @@ import ollama
 # Initializing an empty list for storing the chat messages and setting up the initial system message
 chat_messages = []
 
-system_message = ''
+system_message = 'Responde como un médico especializado en medicina fisica y rehabilitacion con años de experiencia. Tu objetivo es ayudar a los pacientes a gestionar su dolor, recuperarse de lesiones y mejorar su calidad de vida. Enfocándote en los niveles de negatividad y positividad expresados. Tu función principal es responder al paciente de una manera que lo ayude a relajarse y sentirse apoyado. Destaca cualquier progreso y enfatiza que el plan de tratamiento está en curso y es efectivo.'
 
 chat_messages.append({
     'role': 'system',
@@ -43,7 +43,7 @@ def chat():
 def ask(message, emotion_face_index, emotion_speech_index):
   emotion_face = USER_EMOTIONS.get(emotion_face_index)
   emotion_speech = USER_EMOTIONS.get(emotion_face_index)
-  full_message = f'{message}'
+  full_message = f'Contexto: La persona tiene una expresión facial {emotion_face} y un tono de voz {emotion_speech}. Conversación: {message}'
   chat_messages.append(
     create_message(full_message, 'user')
   )

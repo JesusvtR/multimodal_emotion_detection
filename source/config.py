@@ -11,13 +11,14 @@ else:
 ls = os.sep
 device = 'cuda' if cuda.is_available() else 'cpu'
 
-VERBOSE = False
-TRANSCRIBE = True
-OUTPUT_IMAGE_PATH = MAIN_PATH + "output_files" + ls + "image.jpg"
-SAVE_OUTPUT_IMAGE = True
-SAVE_AUDIO = False
-ROS_SETUP = False
-PROMPT_LLM = True
+# Multimodal Emotion Detection - Config Parameters
+VERBOSE = False # Print debug info
+TRANSCRIBE = True # Enable/Disable Transcription
+OUTPUT_IMAGE_PATH = MAIN_PATH + "output_files" + ls + "image.jpg" # Path to save output facial image
+SAVE_OUTPUT_IMAGE = True # Enable/Disable save output facial image
+SAVE_AUDIO = False # Enable/Disable save audio wav file
+ROS_SETUP = False # Enable/Disable ROS environment
+PROMPT_LLM = True # Enable/Disable LLM inference
 #################################################################################################################################
 # FOLDERS
 #################################################################################################################################
