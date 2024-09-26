@@ -1,7 +1,7 @@
-# multimodal_emotion_detection
+# CONCIERTO
 
-Repositorio del trabajo de fin de master (Universidad de Málaga) para el reconocimento de emociones multimodal.
-
+Repositorio del trabajo de fin de master (Universidad de Málaga) titulado CONCIERTO: COntrol Colaborativo para Interacción física Empática entre RoboT y humanO.
+.
 
 # Troubleshooting
 
@@ -125,4 +125,11 @@ ollama run llama3.1
 #No module named 'rospy' 
 
 sudo apt-get install -y python3-rospy
+
+# Acknowledgment
+This project makes use of [Video-Audio-Face-Emotion-Recognition
+](https://github.com/rishiswethan/Video-Audio-Face-Emotion-Recognition), which is available under the [MIT License](https://github.com/rishiswethan/Video-Audio-Face-Emotion-Recognition/blob/main/LICENSE).
+
+We would like to thank the developers of [Video-Audio-Face-Emotion-Recognition
+] for their incredible work, which has been essential to the development of this project.
 
