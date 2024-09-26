@@ -1,0 +1,3 @@
+int8 emotion_face
+int8 emotion_speech
+string transcription
