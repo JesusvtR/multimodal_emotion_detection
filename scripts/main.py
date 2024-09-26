@@ -67,15 +67,17 @@ def main():
         emotion_face, face_emotion_index, tensor_video = facial_prediction
         emotion_speech, transcription, speech_emotion_index, tensor_audio, extracted_mfcc = speech_prediction
         # Print emotions
-        print(f'Face emotion: {emotion_face}')
-        print(f'Speech emotion: {emotion_speech}')
+        if config.VERBOSE == True:
+            print(f'Face emotion: {emotion_face}')
+            print(f'Speech emotion: {emotion_speech}')
         
         # Sent transcription prompt to LLM
         if config.PROMPT_LLM == True: 
             if(transcription == ""):
                 print('No transcription')
             else:
-                print(transcription)
+                if config.VERBOSE == True:
+                    print(transcription)
                 assistant.ask(transcription, face_emotion_index, speech_emotion_index)
         
         # Time counter

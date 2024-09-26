@@ -47,5 +47,5 @@ def ask(message, emotion_face_index, emotion_speech_index):
   chat_messages.append(
     create_message(full_message, 'user')
   )
-  print(f'\n\n--{full_message}--\n\n')
+  print(f'PACIENTE:\n\n--{full_message}--\n\n')
   chat()

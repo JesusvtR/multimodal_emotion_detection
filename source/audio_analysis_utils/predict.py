@@ -27,6 +27,7 @@ def predict(result_queue):
     source = sr.Microphone(sample_rate=16000)
     with source:
         recorder.adjust_for_ambient_noise(source)
+        print("\nRecording...\n")
         audio_data = recorder.listen(source, timeout=DURATION)
         
     wav_bytes = audio_data.get_wav_data(convert_rate=AUDIO_SAMPLE_RATE)
